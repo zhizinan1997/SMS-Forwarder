@@ -73,6 +73,7 @@ body {
 #login-page {
     justify-content: center;
     align-items: center;
+    padding-top: env(safe-area-inset-top);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     background-size: 400% 400%;
     animation: gradientShift 15s ease infinite;
@@ -236,6 +237,8 @@ body {
     display: flex;
     height: 100vh;
     height: 100dvh;
+    /* PWA standalone 模式下支持顶部安全区域 */
+    padding-top: env(safe-area-inset-top);
 }
 
 .panel {
@@ -264,7 +267,6 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    padding-top: max(12px, env(safe-area-inset-top));
     background: var(--bg-secondary);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
@@ -696,6 +698,8 @@ body {
         z-index: 100;
         transform: translateX(100%);
         transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        /* PWA standalone 模式下支持顶部安全区域 */
+        padding-top: env(safe-area-inset-top);
     }
 
     #messages-panel.visible {
