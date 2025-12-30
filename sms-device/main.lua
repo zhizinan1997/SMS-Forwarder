@@ -126,7 +126,19 @@ sys.taskInit(
 
         -- 发送开机通知
         if config.BOOT_NOTIFY then
-            util_notify.add("#BOOT")
+            -- 构建详细的开机通知内容
+            local boot_info = {
+                "📱 设备已上线",
+                "",
+                "本机号码: " .. (mobile.number(mobile.simid()) or "未知"),
+                "运营商: " .. util_mobile.getOper(true),
+                "信号强度: " .. mobile.rsrp() .. " dBm",
+                "频段: B" .. util_mobile.getBand(),
+                "设备ID: " .. (config.DEVICE_ID or "air780e_01"),
+                "",
+                "#BOOT"
+            }
+            util_notify.add(table.concat(boot_info, "\n"), nil, { sender = "#SYSTEM", time = os.date("%Y-%m-%d %H:%M:%S") })
         end
 
         -- 启动定时查询流量任务 (如已配置)
@@ -143,7 +155,24 @@ sys.taskInit(
         sys.subscribe(
             "POWERKEY_SHORT_PRESS",
             function()
-                util_notify.add("#ALIVE") -- 短按发送“在线”心跳通知
+                -- 构建详细的心跳通知内容
+                local ms = mcu.ticks()
+                local seconds = math.floor(ms / 1000)
+                local minutes = math.floor(seconds / 60)
+                local hours = math.floor(minutes / 60)
+                seconds = seconds % 60
+                minutes = minutes % 60
+                local uptime = string.format("%02d:%02d:%02d", hours, minutes, seconds)
+                
+                local alive_info = {
+                    "💚 设备心跳",
+                    "",
+                    "运行时长: " .. uptime,
+                    "信号强度: " .. mobile.rsrp() .. " dBm",
+                    "",
+                    "#ALIVE"
+                }
+                util_notify.add(table.concat(alive_info, "\n"), nil, { sender = "#SYSTEM", time = os.date("%Y-%m-%d %H:%M:%S") }) -- 短按发送“在线”心跳通知
             end
         )
         sys.subscribe("POWERKEY_LONG_PRESS", util_mobile.queryTraffic) -- 长按手动触发流量查询

@@ -264,6 +264,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
+    padding-top: max(12px, env(safe-area-inset-top));
     background: var(--bg-secondary);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
