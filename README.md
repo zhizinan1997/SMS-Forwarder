@@ -27,7 +27,7 @@
 
 ```bash
 # 拉取最新镜像 (支持 amd64/arm64)
-docker pull ghcr.io/zhizinan1997/sms-server:latest
+docker pull ghcr.io/zhizinan1997/sms-forwarder/sms-server:latest
 
 # 启动容器
 docker run -d \
@@ -36,7 +36,7 @@ docker run -d \
   -v $(pwd)/data:/app/data \
   -e TZ=Asia/Shanghai \
   --restart unless-stopped \
-  ghcr.io/zhizinan1997/sms-server:latest
+  ghcr.io/zhizinan1997/sms-forwarder/sms-server:latest
 ```
 
 > 💡 镜像支持 `linux/amd64` 和 `linux/arm64` 架构，可在 x86 服务器或树莓派等 ARM 设备上运行。
