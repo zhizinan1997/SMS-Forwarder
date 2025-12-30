@@ -1,6 +1,10 @@
-# DT718H 短信转发助手
+# 📱 SMS-Forwarder | DT718H 短信转发助手
 
-基于 DT718H 4G 模组的短信转发系统，支持多渠道通知推送和 Web 管理界面。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://www.docker.com/)
+[![Web UI](https://img.shields.io/badge/UI-iOS--Style-FF3B30.svg)]()
+
+> 基于 DT718H 4G 模组的高性能短信转发系统，支持多渠道通知推送和 iOS 体验的 Web 管理界面。
 
 ## 📁 项目结构
 
