@@ -61,7 +61,7 @@ docker run -d \
 
 #### 方式二：云平台 PaaS 部署 (零成本/免维护)
 
-如果您没有自己的服务器，可以使用以下平台一键部署（支持 Docker + SQLite 持久化 + WebSocket）：
+如果您没有自己的服务器，可以先 **Fork 本项目**，然后使用以下平台一键部署（支持 Docker + SQLite 持久化 + WebSocket）：
 
 ##### 🟣 Zeabur (最推荐)
 1. 在 [Zeabur](https://zeabur.com/) 创建项目，选择 **"Deploy Service"** → **"GitHub"**。
