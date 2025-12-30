@@ -10,7 +10,7 @@
 
 ```
 ├── sms-device/         # 设备端 Lua 脚本 (刷入 DT718H)
-├── sms-server/         # Web 服务器 (部署到云服务器)
+├── sms-server/         # Web 服务器 (部署到云服务器/云平台)
 ├── soc/                # LuatOS 固件
 ├── tools/              # 刷机工具 (Luatools)
 ├── FILE_NOTES.md       # 项目代码审查与各文件详细备注
@@ -59,30 +59,44 @@ docker run -d \
 
 > 💡 镜像支持 `linux/amd64` 和 `linux/arm64` 架构，可在 x86 服务器或树莓派等 ARM 设备上运行。
 
-#### 方式二：本地构建镜像
+#### 方式二：云平台 PaaS 部署 (零成本/免维护)
+
+如果您没有自己的服务器，可以使用以下平台一键部署（支持 Docker + SQLite 持久化 + WebSocket）：
+
+##### 🟣 Zeabur (最推荐)
+1. 在 [Zeabur](https://zeabur.com/) 创建项目，选择 **"Deploy Service"** → **"GitHub"**。
+2. 设置 **Root Directory** 为 `sms-server`。
+3. **关键步骤**：在服务设置面板中，点击 **"Storage"** -> **"Add Volume"**，挂载路径填 `/app/data`。
+
+##### 🚂 Railway
+1. 在 [Railway](https://railway.app/) 点击 **"New Project"** → **"Deploy from GitHub repo"**。
+2. 在 **Settings** 中设置 **Root Directory** 为 `sms-server`。
+3. **关键步骤**：点击 **"Add"** -> **"Volume"**，并将其映射到 `/app/data`。
+
+##### ☁️ Render
+1. 在 [Render](https://render.com/) 创建 **"Web Service"**，连接 GitHub 仓库。
+2. 设置 **Runtime** 为 `Docker`，**Root Directory** 为 `sms-server`。
+3. **注意**：Render 免费版不支持持久化存储，建议使用其付费版的 **"Disk"** 功能挂载 `/app/data`。
+
+#### 方式三：本地构建/导入镜像
+
+<details>
+<summary>点击展开本地构建步骤</summary>
 
 ```bash
 cd sms-server
-
 # 使用 docker-compose 构建并启动
 docker-compose up -d --build
 ```
 
-#### 方式三：导入预构建镜像包
-
+或者手工导入镜像包：
 ```bash
-cd sms-server
 docker load -i sms-server.tar
-docker run -d \
-  --name sms-server \
-  -p 3000:3000 \
-  -v $(pwd)/data:/app/data \
-  -e TZ=Asia/Shanghai \
-  --restart unless-stopped \
-  sms-server-sms-server:latest
+docker run -d ...
 ```
+</details>
 
-4. 访问 `http://你的服务器IP:3000`，默认密码：`admin`，登陆后请及时修改
+4. 访问 `http://你的域名或IP:3000`，默认密码：`admin`，登陆后请及时修改
 
 ### 第二步：刷入设备脚本
 
