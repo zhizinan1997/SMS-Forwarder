@@ -61,6 +61,23 @@ function generateToken() {
 }
 
 /**
+ * 获取当前的北京时间 (Asia/Shanghai)
+ * 确保格式为 YYYY-MM-DD HH:mm:ss
+ */
+function getBeijingTime() {
+    return new Date().toLocaleString('zh-CN', {
+        timeZone: 'Asia/Shanghai',
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    }).replace(/\//g, '/'); // 保持斜杠格式，兼容性最好
+}
+
+/**
  * 认证中间件
  * 用于保护需要登录才能访问的 API 导出
  */
@@ -178,7 +195,7 @@ app.post('/api/sms/receive', (req, res) => {
         return res.status(400).json({ error: '参数不完整' });
     }
 
-    const receivedAt = time || new Date().toLocaleString('zh-CN');
+    const receivedAt = time || getBeijingTime();
     const deviceId = device_id || 'air780e_01';
 
     try {
@@ -255,14 +272,15 @@ app.post('/api/sms/send', authMiddleware, (req, res) => {
     }
 
     const deviceId = device_id || 'air780e_01';
+    const time = getBeijingTime();
 
     try {
         // 存入代发队列 (Outbox)
-        const id = db.addToOutbox(normalizedRecipient, content, deviceId);
-        console.log(`[发送任务已入库] -> ${normalizedRecipient}`);
+        const id = db.addToOutbox(normalizedRecipient, content, time, deviceId);
+        console.log(`[${time}] [发送任务已入库] -> ${normalizedRecipient}`);
 
         // WS 通知前端状态已变更
-        broadcast('send_queued', { id, recipient: normalizedRecipient, content });
+        broadcast('send_queued', { id, recipient: normalizedRecipient, content, time });
 
         res.json({ success: true, id, message: '已加入待发送队列' });
     } catch (error) {
@@ -307,11 +325,12 @@ app.post('/api/sms/sent', (req, res) => {
     }
 
     try {
-        db.updateOutboxStatus(id, status);
-        console.log(`[${new Date().toLocaleString()}] 短信发送状态更新: ID=${id}, status=${status}`);
+        const time = getBeijingTime();
+        db.updateOutboxStatus(id, status, time);
+        console.log(`[${time}] 短信发送状态更新: ID=${id}, status=${status}`);
 
         // 广播发送状态更新
-        broadcast('send_status', { id, status });
+        broadcast('send_status', { id, status, time });
 
         res.json({ success: true });
     } catch (error) {

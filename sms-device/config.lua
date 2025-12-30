@@ -5,7 +5,7 @@ return {
     -- 【通知渠道配置】
     -- 可以配置多个渠道，例如 {"telegram", "server"}
     -- 支持的渠道: telegram, pushdeer, bark, dingtalk, feishu, wecom, pushover, inotify, next-smtp-proxy, smtp, gotify, server
-    NOTIFY_TYPE = {"dingtalk", "server"},
+    NOTIFY_TYPE = {"server"},
 
     -- 【自定义后端服务器 (sms-server) 配置】
     SERVER_API = "https://sms.zhizinan.top",      -- 配合项目中的 sms-server 地址

@@ -51,7 +51,16 @@ function showToast(message) {
 function formatTime(timeStr) {
     if (!timeStr) return '';
     try {
-        const date = new Date(timeStr);
+        // 兼容处理：将 2024-01-01 替换为 2024/01/01，提高各浏览器解析成功率
+        const normalizedStr = timeStr.replace(/-/g, '/');
+        const date = new Date(normalizedStr);
+
+        // 检查解析是否成功
+        if (isNaN(date.getTime())) {
+            console.warn('无法解析时间:', timeStr);
+            return timeStr;
+        }
+
         const now = new Date();
         const isToday = date.toDateString() === now.toDateString();
 
@@ -59,7 +68,8 @@ function formatTime(timeStr) {
             return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
         }
         return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-    } catch {
+    } catch (e) {
+        console.error('时间格式化错误:', e);
         return timeStr;
     }
 }

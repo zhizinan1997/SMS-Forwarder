@@ -71,7 +71,7 @@ function saveMessage(sender, content, receivedAt, deviceId = 'air780e_01') {
 
 // 获取所有会话（包含收发消息，显示最新一条）
 function getConversations() {
-    // 使用子查询获取每个号码的最新消息
+    // 使用子查询获取每个号码的最新一条消息的 ID
     const stmt = db.prepare(`
         SELECT 
             m.sender as phone,
@@ -81,11 +81,11 @@ function getConversations() {
             counts.messageCount
         FROM messages m
         INNER JOIN (
-            SELECT sender, MAX(received_at) as maxTime, COUNT(*) as messageCount
+            SELECT sender, MAX(id) as maxId, COUNT(*) as messageCount
             FROM messages
             GROUP BY sender
-        ) counts ON m.sender = counts.sender AND m.received_at = counts.maxTime
-        ORDER BY m.received_at DESC
+        ) counts ON m.id = counts.maxId
+        ORDER BY m.received_at DESC, m.id DESC
     `);
     return stmt.all();
 }
@@ -120,19 +120,19 @@ function getAllMessages(limit = 100, offset = 0) {
 // === 发件箱操作 ===
 
 // [核心操作] 将网页发出的代发任务加入待办
-function addToOutbox(recipient, content, deviceId = 'air780e_01') {
+function addToOutbox(recipient, content, time, deviceId = 'air780e_01') {
     const stmt = db.prepare(`
-        INSERT INTO outbox (recipient, content, device_id, status)
-        VALUES (?, ?, ?, 'pending')
+        INSERT INTO outbox (recipient, content, device_id, status, created_at)
+        VALUES (?, ?, ?, 'pending', ?)
     `);
-    const result = stmt.run(recipient, content, deviceId);
+    const result = stmt.run(recipient, content, deviceId, time);
 
     // 同步到 messages 主表以便在网页列表中立即看到“发送中”的消息
     const msgStmt = db.prepare(`
         INSERT INTO messages (sender, content, received_at, device_id, is_outgoing, status)
-        VALUES (?, ?, datetime('now', 'localtime'), ?, 1, 'pending')
+        VALUES (?, ?, ?, ?, 1, 'pending')
     `);
-    msgStmt.run(recipient, content, deviceId);
+    msgStmt.run(recipient, content, time, deviceId);
 
     return result.lastInsertRowid;
 }
@@ -148,14 +148,14 @@ function getPendingMessages(deviceId = 'air780e_01') {
 }
 
 // 更新发送状态
-function updateOutboxStatus(id, status) {
+function updateOutboxStatus(id, status, time) {
     // 更新 outbox 表
     const stmt = db.prepare(`
         UPDATE outbox 
-        SET status = ?, sent_at = datetime('now', 'localtime')
+        SET status = ?, sent_at = ?
         WHERE id = ?
     `);
-    stmt.run(status, id);
+    stmt.run(status, time, id);
 
     // 获取发件信息
     const outboxItem = db.prepare('SELECT * FROM outbox WHERE id = ?').get(id);
