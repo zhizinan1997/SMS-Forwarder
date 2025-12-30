@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#34C759">
+    <title>短信管理</title>
+
+    <!-- PWA 支持 -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- 登录页面 -->
+    <div id="login-page" class="page active">
+        <div class="login-container glass">
+            <div class="login-icon">
+                <img src="logo.png" alt="Logo">
+            </div>
+            <h1>短信管理平台</h1>
+            <p class="subtitle">Air780E/DT718H 短信转发助手</p>
+            <form id="login-form">
+                <input type="password" id="password-input" placeholder="请输入密码" autocomplete="current-password" required>
+                <button type="submit" class="btn-primary">登录</button>
+            </form>
+            <p id="login-error" class="error-text"></p>
+        </div>
+    </div>
+
+    <!-- 主页面 -->
+    <div id="main-page" class="page">
+        <!-- 会话列表 -->
+        <div id="conversations-panel" class="panel">
+            <div class="panel-header glass">
+                <h1>信息</h1>
+                <div class="header-actions">
+                    <button id="new-msg-btn" class="icon-btn" title="新消息">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>
+                    </button>
+                    <button id="settings-btn" class="icon-btn" title="设置">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="conversations-list" class="list">
+                <!-- 会话列表将动态加载 -->
+            </div>
+        </div>
+
+        <!-- 消息详情 -->
+        <div id="messages-panel" class="panel hidden-mobile">
+            <div class="panel-header glass">
+                <button id="back-btn" class="icon-btn mobile-only">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="contact-info">
+                    <h2 id="contact-name">选择会话</h2>
+                </div>
+                <!-- 占位符以保持标题居中 -->
+                <div style="width: 36px;"></div>
+            </div>
+            <div id="messages-container" class="messages">
+                <div class="empty-state">
+                    <img src="logo.png" alt="Logo">
+                    <p>选择一个会话开始查看</p>
+                </div>
+            </div>
+            <div id="input-area" class="input-area hidden">
+                <input type="text" id="message-input" placeholder="iMessage">
+                <button id="send-btn" class="send-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <line x1="12" y1="19" x2="12" y2="5"></line>
+                        <polyline points="5 12 12 5 19 12"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新消息弹窗 -->
+    <div id="new-msg-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>新消息</h3>
+                <button id="close-modal-btn" class="icon-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="new-msg-form">
+                <input type="tel" id="new-recipient" placeholder="收件人:" required>
+                <textarea id="new-content" placeholder="短信内容" rows="4" required></textarea>
+                <button type="submit" class="btn-primary">发送</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>设置</h3>
+                <button id="close-settings-btn" class="icon-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="change-password-form">
+                <h4>账户安全</h4>
+                <input type="password" id="old-password" placeholder="当前密码" required>
+                <input type="password" id="new-password" placeholder="新密码" required>
+                <button type="submit" class="btn-primary">更新密码</button>
+            </form>
+            <hr>
+            <button id="logout-btn" class="btn-secondary">退出登录</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
