@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#5856D6">
+    <title>管理员控制台</title>
+
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- 初始化页面 -->
+    <div id="init-page" class="page">
+        <div class="login-container glass">
+            <div class="login-icon admin-icon">
+                <svg width="88" height="88" viewBox="0 0 24 24" fill="none" stroke="url(#adminGrad)" stroke-width="1.5">
+                    <defs>
+                        <linearGradient id="adminGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#5856D6"/>
+                            <stop offset="100%" style="stop-color:#AF52DE"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </div>
+            <h1>初始化管理员</h1>
+            <p class="subtitle">首次使用，请设置管理员账号</p>
+            <form id="init-form">
+                <input type="text" id="init-username" placeholder="管理员账号（至少3位）" autocomplete="username" required>
+                <input type="password" id="init-password" placeholder="管理员密码（至少4位）" autocomplete="new-password" required>
+                <input type="password" id="init-password-confirm" placeholder="确认密码" autocomplete="new-password" required>
+                <button type="submit" class="btn-primary">创建管理员</button>
+            </form>
+            <p id="init-error" class="error-text"></p>
+        </div>
+    </div>
+
+    <!-- 登录页面 -->
+    <div id="login-page" class="page">
+        <div class="login-container glass">
+            <div class="login-icon admin-icon">
+                <svg width="88" height="88" viewBox="0 0 24 24" fill="none" stroke="url(#adminGrad2)" stroke-width="1.5">
+                    <defs>
+                        <linearGradient id="adminGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#5856D6"/>
+                            <stop offset="100%" style="stop-color:#AF52DE"/>
+                        </linearGradient>
+                    </defs>
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <h1>管理员登录</h1>
+            <p class="subtitle">短信转发器管理控制台</p>
+            <form id="login-form">
+                <input type="text" id="login-username" placeholder="管理员账号" autocomplete="username" required>
+                <input type="password" id="login-password" placeholder="管理员密码" autocomplete="current-password" required>
+                <button type="submit" class="btn-primary">登录</button>
+            </form>
+            <p id="login-error" class="error-text"></p>
+            <a href="/" class="back-link">← 返回短信界面</a>
+        </div>
+    </div>
+
+    <!-- 主控制台 -->
+    <div id="main-page" class="page">
+        <div class="admin-container">
+            <header class="admin-header glass">
+                <h1>管理控制台</h1>
+                <div class="header-actions">
+                    <span id="admin-username" class="admin-badge"></span>
+                    <button id="logout-btn" class="icon-btn" title="退出登录">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <main class="admin-main">
+                <!-- 修改密码卡片 -->
+                <section class="card">
+                    <div class="card-header">
+                        <h2>🔐 修改管理员密码</h2>
+                    </div>
+                    <form id="change-password-form" class="card-body">
+                        <div class="form-row">
+                            <input type="password" id="old-password" placeholder="当前密码" required>
+                            <input type="password" id="new-password" placeholder="新密码（至少4位）" required>
+                            <button type="submit" class="btn-primary">更新密码</button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- 子账号管理卡片 -->
+                <section class="card">
+                    <div class="card-header">
+                        <h2>👥 子账号管理</h2>
+                        <button id="add-account-btn" class="btn-small">+ 添加子账号</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="hint">子账号用于短信界面登录，不同密码可设置不同的短信筛选规则。</p>
+                        <div id="accounts-list" class="accounts-list">
+                            <!-- 动态加载 -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 快捷入口 -->
+                <section class="card">
+                    <div class="card-header">
+                        <h2>🔗 快捷入口</h2>
+                    </div>
+                    <div class="card-body links-grid">
+                        <a href="/" class="link-item">
+                            <span class="link-icon">💬</span>
+                            <span>短信界面</span>
+                        </a>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- 添加/编辑子账号弹窗 -->
+    <div id="account-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3 id="modal-title">添加子账号</h3>
+                <button id="close-modal-btn" class="icon-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="account-form">
+                <input type="hidden" id="account-id">
+                <input type="text" id="account-password" placeholder="登录密码（至少4位）" required>
+                <select id="account-filter-type">
+                    <option value="all">显示所有短信</option>
+                    <option value="content_contains">内容包含关键词</option>
+                    <option value="sender_match">发送者匹配</option>
+                </select>
+                <input type="text" id="account-filter-value" placeholder="筛选关键词（仅筛选类型非"全部"时需要）">
+                <input type="text" id="account-description" placeholder="备注说明（可选）">
+                <div class="modal-actions">
+                    <button type="button" id="cancel-btn" class="btn-secondary">取消</button>
+                    <button type="submit" class="btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 确认删除弹窗 -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3>确认删除</h3>
+            </div>
+            <p id="confirm-message" class="confirm-text"></p>
+            <div class="modal-actions">
+                <button id="confirm-cancel-btn" class="btn-secondary">取消</button>
+                <button id="confirm-delete-btn" class="btn-danger">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+
+</html>

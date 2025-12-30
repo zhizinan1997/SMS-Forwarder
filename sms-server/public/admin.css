@@ -1,0 +1,385 @@
+/* ==================== 管理员界面专用样式 ==================== */
+
+/* 页面背景 - 紫色渐变 */
+#init-page,
+#login-page {
+    justify-content: center;
+    align-items: center;
+    padding-top: env(safe-area-inset-top);
+    background: linear-gradient(135deg, #5856D6 0%, #AF52DE 50%, #667eea 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+}
+
+.admin-icon {
+    margin-bottom: 28px;
+}
+
+.admin-icon svg {
+    width: 88px;
+    height: 88px;
+    filter: drop-shadow(0 8px 24px rgba(88, 86, 214, 0.3));
+    animation: float 4s ease-in-out infinite;
+}
+
+/* 返回链接 */
+.back-link {
+    display: inline-block;
+    margin-top: 24px;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.2s;
+}
+
+.back-link:hover {
+    color: var(--primary-color);
+}
+
+/* ==================== 主控制台布局 ==================== */
+#main-page {
+    display: none;
+    flex-direction: column;
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+#main-page.active {
+    display: flex;
+}
+
+.admin-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 16px;
+}
+
+.admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    margin-top: 16px;
+    border-radius: 16px;
+    background: var(--bg-secondary);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-card);
+}
+
+.admin-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #5856D6 0%, #AF52DE 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.admin-badge {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #5856D6 0%, #AF52DE 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.admin-main {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 0 32px;
+}
+
+/* ==================== 卡片样式 ==================== */
+.card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 0.5px solid var(--border-color);
+}
+
+.card-header h2 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.hint {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+/* ==================== 表单样式 ==================== */
+.form-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-row input {
+    flex: 1;
+    min-width: 150px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.form-row input:focus {
+    background: var(--bg-primary);
+    box-shadow: 0 0 0 3px rgba(88, 86, 214, 0.2);
+}
+
+.form-row .btn-primary {
+    padding: 12px 20px;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+/* ==================== 按钮样式 ==================== */
+.btn-small {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #5856D6 0%, #AF52DE 100%);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-small:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(88, 86, 214, 0.4);
+}
+
+.btn-danger {
+    padding: 14px 24px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #FF3B30 0%, #FF6B6B 100%);
+    color: white;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(255, 59, 48, 0.4);
+}
+
+/* ==================== 子账号列表 ==================== */
+.accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.account-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.account-item:hover {
+    background: var(--bg-primary);
+}
+
+.account-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.account-password {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+.account-filter {
+    font-size: 13px;
+    color: var(--text-tertiary);
+}
+
+.account-filter .filter-type {
+    padding: 2px 8px;
+    background: rgba(88, 86, 214, 0.15);
+    color: #5856D6;
+    border-radius: 4px;
+    font-weight: 500;
+    margin-right: 6px;
+}
+
+.account-description {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.account-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.account-actions button {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.account-actions button:hover {
+    background: var(--bg-card);
+}
+
+.account-actions .edit-btn:hover {
+    color: #5856D6;
+}
+
+.account-actions .delete-btn:hover {
+    color: #FF3B30;
+}
+
+.no-accounts {
+    text-align: center;
+    padding: 32px;
+    color: var(--text-tertiary);
+    font-size: 15px;
+}
+
+/* ==================== 快捷入口 ==================== */
+.links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.link-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+}
+
+.link-item:hover {
+    background: var(--bg-primary);
+    transform: translateY(-2px);
+}
+
+.link-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.link-item span:last-child {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* ==================== 弹窗样式扩展 ==================== */
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.modal-actions button {
+    flex: 1;
+}
+
+.confirm-text {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin: 16px 0;
+    line-height: 1.5;
+}
+
+#account-form select {
+    padding: 14px 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 17px;
+    outline: none;
+    width: 100%;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    cursor: pointer;
+}
+
+#account-form select:focus {
+    background-color: var(--bg-primary);
+}
+
+/* ==================== 移动端适配 ==================== */
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+    }
+    
+    .form-row input,
+    .form-row .btn-primary {
+        width: 100%;
+    }
+    
+    .account-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .account-actions {
+        justify-content: flex-end;
+    }
+}

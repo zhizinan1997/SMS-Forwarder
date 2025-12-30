@@ -50,6 +50,28 @@ function initDatabase() {
         )
     `);
 
+    // 管理员表
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS admin (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        )
+    `);
+
+    // 子账号表（密码 -> 筛选规则）
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS sub_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            password TEXT NOT NULL UNIQUE,
+            filter_type TEXT NOT NULL DEFAULT 'all',
+            filter_value TEXT,
+            description TEXT,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        )
+    `);
+
     // 初始化默认登录密码
     const stmt = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
     stmt.run('password', 'admin');
@@ -214,6 +236,145 @@ function changePassword(newPassword) {
     setSetting('password', newPassword);
 }
 
+// === 管理员操作 ===
+
+// 检查是否已初始化管理员
+function isAdminInitialized() {
+    const stmt = db.prepare('SELECT COUNT(*) as count FROM admin');
+    const row = stmt.get();
+    return row.count > 0;
+}
+
+// 首次设置管理员
+function initAdmin(username, password) {
+    const stmt = db.prepare('INSERT INTO admin (username, password) VALUES (?, ?)');
+    const result = stmt.run(username, password);
+    return result.lastInsertRowid;
+}
+
+// 验证管理员登录
+function verifyAdmin(username, password) {
+    const stmt = db.prepare('SELECT * FROM admin WHERE username = ? AND password = ?');
+    const row = stmt.get(username, password);
+    return row || null;
+}
+
+// 获取管理员信息
+function getAdmin() {
+    const stmt = db.prepare('SELECT id, username, created_at FROM admin LIMIT 1');
+    return stmt.get() || null;
+}
+
+// 修改管理员密码
+function changeAdminPassword(username, oldPassword, newPassword) {
+    const admin = verifyAdmin(username, oldPassword);
+    if (!admin) return false;
+    const stmt = db.prepare('UPDATE admin SET password = ? WHERE id = ?');
+    stmt.run(newPassword, admin.id);
+    return true;
+}
+
+// === 子账号操作 ===
+
+// 获取所有子账号
+function getSubAccounts() {
+    const stmt = db.prepare('SELECT id, password, filter_type, filter_value, description, created_at FROM sub_accounts ORDER BY created_at DESC');
+    return stmt.all();
+}
+
+// 添加子账号
+function addSubAccount(password, filterType, filterValue, description) {
+    const stmt = db.prepare('INSERT INTO sub_accounts (password, filter_type, filter_value, description) VALUES (?, ?, ?, ?)');
+    const result = stmt.run(password, filterType, filterValue || null, description || null);
+    return result.lastInsertRowid;
+}
+
+// 更新子账号
+function updateSubAccount(id, password, filterType, filterValue, description) {
+    const stmt = db.prepare('UPDATE sub_accounts SET password = ?, filter_type = ?, filter_value = ?, description = ? WHERE id = ?');
+    stmt.run(password, filterType, filterValue || null, description || null, id);
+}
+
+// 删除子账号
+function deleteSubAccount(id) {
+    const stmt = db.prepare('DELETE FROM sub_accounts WHERE id = ?');
+    stmt.run(id);
+}
+
+// 根据密码查找子账号
+function getSubAccountByPassword(password) {
+    const stmt = db.prepare('SELECT * FROM sub_accounts WHERE password = ?');
+    return stmt.get(password) || null;
+}
+
+// === 带筛选的短信查询 ===
+
+// 构建筛选 WHERE 子句
+function buildFilterClause(filterType, filterValue) {
+    if (!filterType || filterType === 'all') {
+        return { clause: '', params: [] };
+    }
+    if (filterType === 'content_contains' && filterValue) {
+        return { clause: ' AND content LIKE ?', params: [`%${filterValue}%`] };
+    }
+    if (filterType === 'sender_match' && filterValue) {
+        return { clause: ' AND sender LIKE ?', params: [`%${filterValue}%`] };
+    }
+    return { clause: '', params: [] };
+}
+
+// 获取过滤后的会话列表
+function getFilteredConversations(filterType, filterValue) {
+    const filter = buildFilterClause(filterType, filterValue);
+    const stmt = db.prepare(`
+        SELECT 
+            m.sender as phone,
+            m.content as lastMessage,
+            m.received_at as lastTime,
+            m.is_outgoing as isOutgoing,
+            counts.messageCount
+        FROM messages m
+        INNER JOIN (
+            SELECT sender, MAX(id) as maxId, COUNT(*) as messageCount
+            FROM messages
+            WHERE 1=1 ${filter.clause}
+            GROUP BY sender
+        ) counts ON m.id = counts.maxId
+        ORDER BY m.received_at DESC, m.id DESC
+    `);
+    return stmt.all(...filter.params);
+}
+
+// 获取过滤后的某号码消息
+function getFilteredMessagesByPhone(phone, filterType, filterValue) {
+    const filter = buildFilterClause(filterType, filterValue);
+    const stmt = db.prepare(`
+        SELECT 
+            id,
+            sender,
+            content,
+            received_at as time,
+            is_outgoing as isOutgoing,
+            status
+        FROM messages
+        WHERE sender = ? ${filter.clause}
+        ORDER BY received_at ASC
+    `);
+    return stmt.all(phone, ...filter.params);
+}
+
+// 获取过滤后的所有短信
+function getFilteredMessages(filterType, filterValue, limit = 100, offset = 0) {
+    const filter = buildFilterClause(filterType, filterValue);
+    const stmt = db.prepare(`
+        SELECT * FROM messages
+        WHERE 1=1 ${filter.clause}
+        ORDER BY received_at DESC
+        LIMIT ? OFFSET ?
+    `);
+    return stmt.all(...filter.params, limit, offset);
+}
+
 // 初始化
 initDatabase();
 
@@ -230,5 +391,22 @@ module.exports = {
     getSetting,
     setSetting,
     verifyPassword,
-    changePassword
+    changePassword,
+    // 管理员
+    isAdminInitialized,
+    initAdmin,
+    verifyAdmin,
+    getAdmin,
+    changeAdminPassword,
+    // 子账号
+    getSubAccounts,
+    addSubAccount,
+    updateSubAccount,
+    deleteSubAccount,
+    getSubAccountByPassword,
+    // 筛选查询
+    getFilteredConversations,
+    getFilteredMessagesByPhone,
+    getFilteredMessages
 };
+
