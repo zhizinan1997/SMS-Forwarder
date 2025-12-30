@@ -10,10 +10,10 @@ local util_notify = {}
 -- [核心数据结构] 尚未发送成功的消息队列
 local msg_queue = {}
 
-/**
- * URL 参数编码辅助函数
- * 将 table 转为 k1=v1&k2=v2 格式
- */
+--[[
+    URL 参数编码辅助函数
+    将 table 转为 k1=v1&k2=v2 格式
+]]
 local function urlencodeTab(params)
     local msg = {}
     for k, v in pairs(params) do
