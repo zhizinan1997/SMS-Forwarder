@@ -72,6 +72,18 @@ function initDatabase() {
         )
     `);
 
+    // 登录会话表，用于保持浏览器一个月内免重复登录
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS sessions (
+            token TEXT PRIMARY KEY,
+            filter_type TEXT DEFAULT 'all',
+            filter_value TEXT,
+            is_admin INTEGER DEFAULT 0,
+            expires_at INTEGER NOT NULL,
+            created_at TEXT DEFAULT (datetime('now', 'localtime'))
+        )
+    `);
+
     // 初始化默认登录密码
     const stmt = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
     stmt.run('password', 'admin');
@@ -307,6 +319,44 @@ function getSubAccountByPassword(password) {
     return stmt.get(password) || null;
 }
 
+// === 会话操作 ===
+
+function saveSession(token, sessionData) {
+    const stmt = db.prepare(`
+        INSERT OR REPLACE INTO sessions (token, filter_type, filter_value, is_admin, expires_at)
+        VALUES (?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+        token,
+        sessionData.filterType || 'all',
+        sessionData.filterValue || null,
+        sessionData.isAdmin ? 1 : 0,
+        sessionData.expiresAt
+    );
+}
+
+function getSession(token) {
+    const stmt = db.prepare('SELECT * FROM sessions WHERE token = ?');
+    const row = stmt.get(token);
+    if (!row) return null;
+    return {
+        expiresAt: row.expires_at,
+        filterType: row.filter_type,
+        filterValue: row.filter_value,
+        isAdmin: row.is_admin === 1
+    };
+}
+
+function deleteSession(token) {
+    const stmt = db.prepare('DELETE FROM sessions WHERE token = ?');
+    stmt.run(token);
+}
+
+function deleteExpiredSessions(now) {
+    const stmt = db.prepare('DELETE FROM sessions WHERE expires_at <= ?');
+    stmt.run(now);
+}
+
 // === 带筛选的短信查询 ===
 
 // 构建筛选 WHERE 子句
@@ -375,6 +425,21 @@ function getFilteredMessages(filterType, filterValue, limit = 100, offset = 0) {
     return stmt.all(...filter.params, limit, offset);
 }
 
+// 删除当前账号筛选范围内的指定短信
+function deleteFilteredMessagesByIds(ids, filterType, filterValue) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+        return 0;
+    }
+    const filter = buildFilterClause(filterType, filterValue);
+    const placeholders = ids.map(() => '?').join(',');
+    const stmt = db.prepare(`
+        DELETE FROM messages
+        WHERE id IN (${placeholders}) ${filter.clause}
+    `);
+    const result = stmt.run(...ids, ...filter.params);
+    return result.changes;
+}
+
 // 初始化
 initDatabase();
 
@@ -404,9 +469,15 @@ module.exports = {
     updateSubAccount,
     deleteSubAccount,
     getSubAccountByPassword,
+    // 会话
+    saveSession,
+    getSession,
+    deleteSession,
+    deleteExpiredSessions,
     // 筛选查询
     getFilteredConversations,
     getFilteredMessagesByPhone,
-    getFilteredMessages
+    getFilteredMessages,
+    deleteFilteredMessagesByIds
 };
 

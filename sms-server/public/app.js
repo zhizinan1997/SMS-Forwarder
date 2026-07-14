@@ -3,6 +3,9 @@ const API_BASE = '';
 let authToken = localStorage.getItem('authToken') || null;
 let currentPhone = null;
 let conversations = [];
+let currentMessages = [];
+let isSelecting = false;
+let selectedMessageIds = new Set();
 let ws = null;
 let wsReconnectTimer = null;
 
@@ -18,6 +21,7 @@ const conversationsList = document.getElementById('conversations-list');
 const messagesPanel = document.getElementById('messages-panel');
 const messagesContainer = document.getElementById('messages-container');
 const contactName = document.getElementById('contact-name');
+const selectionCount = document.getElementById('selection-count');
 const inputArea = document.getElementById('input-area');
 const messageInput = document.getElementById('message-input');
 
@@ -25,6 +29,9 @@ const newMsgBtn = document.getElementById('new-msg-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const backBtn = document.getElementById('back-btn');
 const sendBtn = document.getElementById('send-btn');
+const selectModeBtn = document.getElementById('select-mode-btn');
+const selectionCancelBtn = document.getElementById('selection-cancel-btn');
+const deleteSelectedBtn = document.getElementById('delete-selected-btn');
 
 const newMsgModal = document.getElementById('new-msg-modal');
 const closeModalBtn = document.getElementById('close-modal-btn');
@@ -34,6 +41,12 @@ const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
 const changePasswordForm = document.getElementById('change-password-form');
 const logoutBtn = document.getElementById('logout-btn');
+
+const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+const closeDeleteConfirmBtn = document.getElementById('close-delete-confirm-btn');
+const deleteConfirmMessage = document.getElementById('delete-confirm-message');
+const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 
 // ==================== 工具函数 ====================
 function showToast(message) {
@@ -82,12 +95,12 @@ function getAvatarText(phone) {
 
 function getAvatarColor(phone) {
     const colors = [
-        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-        'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+        '#EAF2FF',
+        '#EAF8EF',
+        '#FFF3E3',
+        '#F1EEFF',
+        '#E9F7F8',
+        '#FFF0F3',
     ];
     const hash = phone.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
     return colors[hash % colors.length];
@@ -169,6 +182,11 @@ function handleWebSocketMessage(message) {
             // 发送状态更新
             handleSendStatus(message.data);
             break;
+
+        case 'messages_deleted':
+            // 其他页面删除了短信
+            handleMessagesDeleted();
+            break;
     }
 }
 
@@ -177,7 +195,7 @@ function handleNewMessage(data) {
     loadConversations();
 
     // 如果当前正在查看这个号码的对话，刷新消息
-    if (currentPhone === data.sender) {
+    if (currentPhone === data.sender && !isSelecting) {
         loadMessages(currentPhone);
     }
 
@@ -197,12 +215,20 @@ function handleSendStatus(data) {
     if (data.status === 'sent') {
         showToast('短信发送成功');
         // 刷新当前对话
-        if (currentPhone) {
+        if (currentPhone && !isSelecting) {
             loadMessages(currentPhone);
         }
         loadConversations();
     } else if (data.status === 'failed') {
         showToast('短信发送失败');
+    }
+}
+
+function handleMessagesDeleted() {
+    loadConversations();
+    if (currentPhone) {
+        exitSelectionMode(false);
+        loadMessages(currentPhone);
     }
 }
 
@@ -296,7 +322,11 @@ function logout() {
     authToken = null;
     localStorage.removeItem('authToken');
     currentPhone = null;
+    currentMessages = [];
+    isSelecting = false;
+    selectedMessageIds.clear();
     disconnectWebSocket();
+    closeDeleteConfirm();
     showLoginPage();
 }
 
@@ -349,6 +379,7 @@ function showLoginPage() {
 function showMainPage() {
     loginPage.classList.remove('active');
     mainPage.classList.add('active');
+    updateSelectionUi();
 }
 
 // ==================== 会话相关 ====================
@@ -373,16 +404,16 @@ function renderConversations() {
 
     conversationsList.innerHTML = conversations.map(conv => `
         <div class="conversation-item ${currentPhone === conv.phone ? 'active' : ''}" 
-             data-phone="${conv.phone}">
+             data-phone="${escapeAttr(conv.phone)}">
             <div class="avatar" style="background: ${getAvatarColor(conv.phone)}">
                 ${getAvatarText(conv.phone)}
             </div>
             <div class="conversation-info">
                 <div class="conversation-header">
-                    <span class="conversation-name">${conv.phone}</span>
+                    <span class="conversation-name">${escapeHtml(conv.phone)}</span>
                     <span class="conversation-time">${formatTime(conv.lastTime)}</span>
                 </div>
-                <div class="conversation-preview">${conv.lastMessage || ''}</div>
+                <div class="conversation-preview">${escapeHtml(conv.lastMessage || '')}</div>
             </div>
         </div>
     `).join('');
@@ -398,6 +429,8 @@ function renderConversations() {
 
 async function selectConversation(phone) {
     currentPhone = phone;
+    isSelecting = false;
+    selectedMessageIds.clear();
 
     // 更新选中状态
     document.querySelectorAll('.conversation-item').forEach(item => {
@@ -407,14 +440,9 @@ async function selectConversation(phone) {
     // 移动端显示消息面板
     messagesPanel.classList.add('visible');
 
-    // 更新标题
-    contactName.textContent = phone;
-
-    // 显示输入区域
-    inputArea.classList.remove('hidden');
-
     // 加载消息
     await loadMessages(phone);
+    updateSelectionUi();
 }
 
 async function loadMessages(phone) {
@@ -423,32 +451,153 @@ async function loadMessages(phone) {
     const data = await apiRequest(`/api/sms/messages/${encodeURIComponent(phone)}`);
 
     if (data?.success) {
-        renderMessages(data.data);
+        currentMessages = data.data;
+        syncSelectedIds();
+        renderMessages(currentMessages);
+        updateSelectionUi();
     } else {
         messagesContainer.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
     }
 }
 
-function renderMessages(messages) {
+function renderMessages(messages = currentMessages, options = {}) {
+    const previousScrollTop = messagesContainer.scrollTop;
+
     if (messages.length === 0) {
         messagesContainer.innerHTML = '<div class="empty-state"><p>暂无消息</p></div>';
+        updateSelectionUi();
         return;
     }
 
     messagesContainer.innerHTML = messages.map(msg => {
         const statusIcon = getStatusIcon(msg.status, msg.isOutgoing);
+        const selected = selectedMessageIds.has(msg.id);
         return `
-            <div class="message-bubble ${msg.isOutgoing ? 'outgoing' : 'incoming'}">
-                ${escapeHtml(msg.content)}
-            </div>
-            <div class="message-time ${msg.isOutgoing ? 'outgoing' : ''}">
-                ${formatTime(msg.time)}${statusIcon}
+            <div class="message-row ${msg.isOutgoing ? 'outgoing' : 'incoming'} ${isSelecting ? 'selecting' : ''} ${selected ? 'selected' : ''}" data-message-id="${msg.id}">
+                <button class="message-select-control ${isSelecting ? '' : 'hidden'}" type="button" aria-label="选择信息" aria-pressed="${selected}">
+                    <span></span>
+                </button>
+                <div class="message-content">
+                    <div class="message-bubble ${msg.isOutgoing ? 'outgoing' : 'incoming'}">${escapeHtml(msg.content)}</div>
+                    <div class="message-time ${msg.isOutgoing ? 'outgoing' : ''}">
+                        ${formatTime(msg.time)}${statusIcon}
+                    </div>
+                </div>
             </div>
         `;
     }).join('');
 
-    // 滚动到底部
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    bindMessageSelectionEvents();
+
+    if (options.preserveScroll) {
+        messagesContainer.scrollTop = previousScrollTop;
+    } else {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+}
+
+function bindMessageSelectionEvents() {
+    document.querySelectorAll('.message-row').forEach(row => {
+        row.addEventListener('click', () => {
+            if (!isSelecting) return;
+            toggleMessageSelection(Number(row.dataset.messageId));
+        });
+    });
+}
+
+function syncSelectedIds() {
+    const visibleIds = new Set(currentMessages.map(msg => msg.id));
+    selectedMessageIds.forEach(id => {
+        if (!visibleIds.has(id)) {
+            selectedMessageIds.delete(id);
+        }
+    });
+    if (currentMessages.length === 0) {
+        isSelecting = false;
+        selectedMessageIds.clear();
+    }
+}
+
+function updateSelectionUi() {
+    const hasConversation = Boolean(currentPhone);
+    const hasMessages = hasConversation && currentMessages.length > 0;
+    const selectedCount = selectedMessageIds.size;
+
+    contactName.textContent = isSelecting ? `已选择 ${selectedCount} 项` : (currentPhone || '选择会话');
+    selectionCount.textContent = isSelecting && currentPhone ? currentPhone : '';
+    selectionCount.classList.toggle('hidden', !isSelecting || !currentPhone);
+    selectModeBtn.classList.toggle('hidden', !hasMessages || isSelecting);
+    selectionCancelBtn.classList.toggle('hidden', !isSelecting);
+    deleteSelectedBtn.classList.toggle('hidden', !isSelecting);
+    deleteSelectedBtn.disabled = selectedCount === 0;
+    inputArea.classList.toggle('hidden', !hasConversation || isSelecting);
+    messagesPanel.classList.toggle('selection-mode', isSelecting);
+}
+
+function enterSelectionMode() {
+    if (!currentMessages.length) return;
+    isSelecting = true;
+    selectedMessageIds.clear();
+    updateSelectionUi();
+    renderMessages(currentMessages, { preserveScroll: true });
+}
+
+function exitSelectionMode(shouldRender = true) {
+    isSelecting = false;
+    selectedMessageIds.clear();
+    closeDeleteConfirm();
+    updateSelectionUi();
+    if (shouldRender) {
+        renderMessages(currentMessages, { preserveScroll: true });
+    }
+}
+
+function toggleMessageSelection(messageId) {
+    if (!messageId) return;
+    if (selectedMessageIds.has(messageId)) {
+        selectedMessageIds.delete(messageId);
+    } else {
+        selectedMessageIds.add(messageId);
+    }
+    updateSelectionUi();
+    renderMessages(currentMessages, { preserveScroll: true });
+}
+
+function openDeleteConfirm() {
+    const count = selectedMessageIds.size;
+    if (count === 0) return;
+    deleteConfirmMessage.textContent = `删除 ${count} 条信息？此操作不可撤销。`;
+    deleteConfirmModal.classList.add('active');
+}
+
+function closeDeleteConfirm() {
+    deleteConfirmModal.classList.remove('active');
+}
+
+async function deleteSelectedMessages() {
+    const ids = [...selectedMessageIds];
+    if (ids.length === 0) return;
+
+    confirmDeleteBtn.disabled = true;
+    const data = await apiRequest('/api/sms/messages', {
+        method: 'DELETE',
+        body: JSON.stringify({ ids })
+    });
+    confirmDeleteBtn.disabled = false;
+
+    if (data?.success) {
+        closeDeleteConfirm();
+        showToast(data.deleted > 0 ? `已删除 ${data.deleted} 条信息` : '没有可删除的信息');
+        isSelecting = false;
+        selectedMessageIds.clear();
+        if (currentPhone) {
+            await loadMessages(currentPhone);
+        }
+        await loadConversations();
+        updateSelectionUi();
+    } else if (data) {
+        showToast(data.error || '删除失败');
+    }
 }
 
 function getStatusIcon(status, isOutgoing) {
@@ -470,6 +619,10 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function escapeAttr(text) {
+    return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // ==================== 发送短信 ====================
@@ -499,7 +652,15 @@ loginForm.addEventListener('submit', (e) => {
 backBtn.addEventListener('click', () => {
     messagesPanel.classList.remove('visible');
     currentPhone = null;
+    currentMessages = [];
+    isSelecting = false;
+    selectedMessageIds.clear();
+    updateSelectionUi();
 });
+
+selectModeBtn.addEventListener('click', enterSelectionMode);
+selectionCancelBtn.addEventListener('click', () => exitSelectionMode());
+deleteSelectedBtn.addEventListener('click', openDeleteConfirm);
 
 // 发送按钮
 sendBtn.addEventListener('click', async () => {
@@ -563,8 +724,12 @@ logoutBtn.addEventListener('click', () => {
     logout();
 });
 
+closeDeleteConfirmBtn.addEventListener('click', closeDeleteConfirm);
+cancelDeleteBtn.addEventListener('click', closeDeleteConfirm);
+confirmDeleteBtn.addEventListener('click', deleteSelectedMessages);
+
 // 点击弹窗外部关闭
-[newMsgModal, settingsModal].forEach(modal => {
+[newMsgModal, settingsModal, deleteConfirmModal].forEach(modal => {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('active');

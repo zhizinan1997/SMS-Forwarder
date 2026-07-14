@@ -71,16 +71,32 @@
         <!-- 消息详情 -->
         <div id="messages-panel" class="panel hidden-mobile">
             <div class="panel-header glass">
-                <button id="back-btn" class="icon-btn mobile-only">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                </button>
+                <div class="message-header-left">
+                    <button id="back-btn" class="icon-btn mobile-only">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <button id="selection-cancel-btn" class="text-btn hidden">取消</button>
+                </div>
                 <div class="contact-info">
                     <h2 id="contact-name">选择会话</h2>
+                    <p id="selection-count" class="selection-count hidden">已选择 0 项</p>
                 </div>
-                <!-- 占位符以保持标题居中 -->
-                <div style="width: 36px;"></div>
+                <div class="message-header-actions">
+                    <button id="select-mode-btn" class="text-btn hidden">选择</button>
+                    <button id="delete-selected-btn" class="icon-btn danger hidden" title="删除所选" disabled>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div id="messages-container" class="messages">
                 <div class="empty-state">
@@ -140,6 +156,27 @@
             </form>
             <hr>
             <button id="logout-btn" class="btn-secondary">退出登录</button>
+        </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div id="delete-confirm-modal" class="modal">
+        <div class="modal-content confirm-modal glass">
+            <div class="modal-header">
+                <h3>删除信息</h3>
+                <button id="close-delete-confirm-btn" class="icon-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <p id="delete-confirm-message" class="confirm-message">删除所选信息？此操作不可撤销。</p>
+            <div class="confirm-actions">
+                <button id="cancel-delete-btn" class="btn-secondary" type="button">取消</button>
+                <button id="confirm-delete-btn" class="btn-danger" type="button">删除</button>
+            </div>
         </div>
     </div>
 

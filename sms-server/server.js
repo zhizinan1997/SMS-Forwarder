@@ -7,6 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
+const crypto = require('crypto');
 const WebSocket = require('ws');
 const db = require('./database');
 
@@ -16,6 +17,7 @@ const server = http.createServer(app);
 // 初始化 WebSocket 服务
 const wss = new WebSocket.Server({ server });
 const PORT = process.env.PORT || 3000;
+const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
 // [中间件配置]
 app.use(cors()); // 启用跨域支持
@@ -56,9 +58,37 @@ function normalizePhoneNumber(phone) {
 // sessionData: { expiresAt, filterType, filterValue, isAdmin }
 const sessions = new Map();
 
+function saveSession(token, sessionData) {
+    sessions.set(token, sessionData);
+    db.saveSession(token, sessionData);
+}
+
+function getSession(token) {
+    if (!token) return null;
+    const cachedSession = sessions.get(token);
+    if (cachedSession) return cachedSession;
+
+    const persistedSession = db.getSession(token);
+    if (persistedSession) {
+        sessions.set(token, persistedSession);
+    }
+    return persistedSession;
+}
+
+function deleteSession(token) {
+    if (!token) return;
+    sessions.delete(token);
+    db.deleteSession(token);
+}
+
+function renewSession(token, sessionData) {
+    sessionData.expiresAt = Date.now() + SESSION_DURATION_MS;
+    saveSession(token, sessionData);
+}
+
 // 生成随机 Session Token
 function generateToken() {
-    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+    return crypto.randomBytes(32).toString('hex');
 }
 
 /**
@@ -85,13 +115,13 @@ function getBeijingTime() {
 function authMiddleware(req, res, next) {
     const token = req.headers['authorization']?.replace('Bearer ', '');
     // 检查 Token 是否存在且未过期
-    const sessionData = sessions.get(token);
+    const sessionData = getSession(token);
     if (!token || !sessionData || Date.now() > sessionData.expiresAt) {
-        if (token) sessions.delete(token);
+        deleteSession(token);
         return res.status(401).json({ error: '未授权，请先登录' });
     }
     // 续期 Session
-    sessionData.expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    renewSession(token, sessionData);
     // 将筛选规则附加到 req 对象
     req.filterType = sessionData.filterType || 'all';
     req.filterValue = sessionData.filterValue || null;
@@ -107,6 +137,7 @@ setInterval(() => {
             sessions.delete(token);
         }
     }
+    db.deleteExpiredSessions(now);
 }, 60 * 1000); // 每分钟清理一次
 
 // ==================== WebSocket 实时推送 ====================
@@ -150,8 +181,8 @@ app.post('/api/auth/login', (req, res) => {
     const subAccount = db.getSubAccountByPassword(password);
     if (subAccount) {
         const token = generateToken();
-        sessions.set(token, {
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        saveSession(token, {
+            expiresAt: Date.now() + SESSION_DURATION_MS,
             filterType: subAccount.filter_type,
             filterValue: subAccount.filter_value,
             isAdmin: false
@@ -162,8 +193,8 @@ app.post('/api/auth/login', (req, res) => {
     // 其次检查旧密码（兼容模式，显示所有短信）
     if (db.verifyPassword(password)) {
         const token = generateToken();
-        sessions.set(token, {
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        saveSession(token, {
+            expiresAt: Date.now() + SESSION_DURATION_MS,
             filterType: 'all',
             filterValue: null,
             isAdmin: false
@@ -177,9 +208,7 @@ app.post('/api/auth/login', (req, res) => {
 // 登出
 app.post('/api/auth/logout', (req, res) => {
     const token = req.headers['authorization']?.replace('Bearer ', '');
-    if (token) {
-        sessions.delete(token);
-    }
+    deleteSession(token);
     res.json({ success: true });
 });
 
@@ -283,6 +312,31 @@ app.get('/api/sms/list', authMiddleware, (req, res) => {
     }
 });
 
+// 删除当前账号可见范围内的指定短信
+app.delete('/api/sms/messages', authMiddleware, (req, res) => {
+    const { ids } = req.body || {};
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: '请选择要删除的短信' });
+    }
+
+    const normalizedIds = [...new Set(ids.map(id => Number(id)))];
+    if (normalizedIds.some(id => !Number.isInteger(id) || id <= 0)) {
+        return res.status(400).json({ error: '短信 ID 无效' });
+    }
+
+    try {
+        const deleted = db.deleteFilteredMessagesByIds(normalizedIds, req.filterType, req.filterValue);
+        if (deleted > 0) {
+            broadcast('messages_deleted', { ids: normalizedIds, deleted });
+        }
+        res.json({ success: true, deleted });
+    } catch (error) {
+        console.error('删除短信失败:', error);
+        res.status(500).json({ error: '删除失败' });
+    }
+});
+
 // [WEB 端请求] 创建由于本设备发出的短信任务
 app.post('/api/sms/send', authMiddleware, (req, res) => {
     const { recipient, content, device_id } = req.body;
@@ -370,16 +424,16 @@ app.post('/api/sms/sent', (req, res) => {
 // 管理员认证中间件
 function adminAuthMiddleware(req, res, next) {
     const token = req.headers['authorization']?.replace('Bearer ', '');
-    const sessionData = sessions.get(token);
+    const sessionData = getSession(token);
     if (!token || !sessionData || Date.now() > sessionData.expiresAt) {
-        if (token) sessions.delete(token);
+        deleteSession(token);
         return res.status(401).json({ error: '未授权，请先登录' });
     }
     if (!sessionData.isAdmin) {
         return res.status(403).json({ error: '需要管理员权限' });
     }
     // 续期 Session
-    sessionData.expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    renewSession(token, sessionData);
     next();
 }
 
@@ -431,8 +485,8 @@ app.post('/api/admin/login', (req, res) => {
     const admin = db.verifyAdmin(username, password);
     if (admin) {
         const token = generateToken();
-        sessions.set(token, {
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        saveSession(token, {
+            expiresAt: Date.now() + SESSION_DURATION_MS,
             filterType: 'all',
             filterValue: null,
             isAdmin: true
