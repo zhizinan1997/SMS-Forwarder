@@ -10,7 +10,7 @@ return {
     -- 【自定义后端服务器 (sms-server) 配置】
     SERVER_API = "https://sms.zhizinan.top",      -- 配合项目中的 sms-server 地址
     DEVICE_ID = "air780e_01",                       -- 设备 ID，用于在后端区分多台设备
-    SERVER_POLL_INTERVAL = 1000 * 10,               -- 轮询待发短信的间隔 (毫秒)，设置为 0 关闭
+    SERVER_POLL_INTERVAL = 1000 * 60 * 10,           -- 轮询待发短信的间隔 (毫秒)，设置为 0 关闭 (当前: 10分钟)
 
     -- 【Telegram 通知】
     TELEGRAM_PROXY_API = "",
